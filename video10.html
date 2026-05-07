@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Lernspiel: Interaktives Video</title>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --success: #00b894;
+            --danger: #d63031;
+            --bg: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .video-container {
+            background: #000;
+            width: 100%;
+            max-width: 800px;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            aspect-ratio: 16 / 9;
+        }
+
+        /* Video-Simulation */
+        .video-screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(45deg, #2c3e50, #000);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .video-placeholder-content {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            transition: opacity 0.5s;
+        }
+
+        /* Fortschrittsbalken */
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 8px;
+            background: var(--primary);
+            width: 0%;
+        }
+
+        /* Overlay für Entscheidungen */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none; /* Initial versteckt */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .overlay h3 {
+            color: white;
+            margin-bottom: 30px;
+            font-size: 1.4rem;
+        }
+
+        .choice-btn {
+            background: white;
+            color: #333;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .choice-btn:hover {
+            transform: scale(1.05);
+            background: #eee;
+        }
+
+        .feedback-screen {
+            display: none;
+            color: white;
+            padding: 30px;
+        }
+
+        .replay-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 500px) {
+            .video-placeholder-content { font-size: 1.1rem; }
+            .choice-btn { font-size: 0.9rem; padding: 12px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div style="width: 100%; max-width: 800px;">
+    <h2 style="text-align: center; color: #333;">Branching Scenario</h2>
+    <p style="text-align: center; color: #666;">Schau dir die Szene an und entscheide über den Ausgang!</p>
+
+    <div class="video-container" id="mainContainer">
+        <div class="video-screen" id="videoScreen">
+            <div id="videoContent" class="video-placeholder-content">
+                🎬 <b>Szene:</b> Lukas probiert das zweite Hemd an...<br>
+                <small>(Simulation läuft...)</small>
+            </div>
+            
+            <div id="feedbackScreen" class="feedback-screen">
+                <h2 id="feedbackTitle"></h2>
+                <p id="feedbackText"></p>
+                <button class="replay-btn" onclick="startScenario()">Szene neu starten</button>
+            </div>
+        </div>
+
+        <div class="progress-bar" id="progressBar"></div>
+
+        <div class="overlay" id="choiceOverlay">
+            <h3>Was soll der Freund sagen?</h3>
+            <button class="choice-btn" onclick="makeChoice('wrong')">„Она очень красивая! Покупай её!“</button>
+            <button class="choice-btn" onclick="makeChoice('right')">„Ну, такое... Не покупай её.“</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let progressInterval;
+
+    function startScenario() {
+        const bar = document.getElementById('progressBar');
+        const overlay = document.getElementById('choiceOverlay');
+        const content = document.getElementById('videoContent');
+        const feedback = document.getElementById('feedbackScreen');
+        
+        // Reset
+        clearInterval(progressInterval);
+        bar.style.width = '0%';
+        overlay.style.display = 'none';
+        content.style.display = 'block';
+        feedback.style.display = 'none';
+        content.innerHTML = "🎬 <b>Szene:</b> Lukas probiert das zweite Hemd an...<br><small>Er schaut in den Spiegel.</small>";
+
+        let width = 0;
+        progressInterval = setInterval(() => {
+            if (width >= 100) {
+                clearInterval(progressInterval);
+                stopVideo();
+            } else {
+                width += 0.5;
+                bar.style.width = width + '%';
+                
+                if(width > 50) {
+                    content.innerHTML = "🤔 <b>Szene:</b> Der Freund überlegt...<br><small>Er vergleicht es mit dem ersten Hemd.</small>";
+                }
+            }
+        }, 30);
+    }
+
+    function stopVideo() {
+        document.getElementById('choiceOverlay').style.display = 'flex';
+    }
+
+    function makeChoice(type) {
+        document.getElementById('choiceOverlay').style.display = 'none';
+        document.getElementById('videoContent').style.display = 'none';
+        const feedback = document.getElementById('feedbackScreen');
+        const title = document.getElementById('feedbackTitle');
+        const text = document.getElementById('feedbackText');
+
+        feedback.style.display = 'block';
+
+        if(type === 'right') {
+            title.innerHTML = "✅ Erfolg!";
+            title.style.color = "var(--success)";
+            text.innerHTML = "Perfekt! Mit <b>'Ну, такое'</b> hast du deine Skepsis höflich ausgedrückt. Dein Freund lässt das Hemd im Laden.";
+        } else {
+            title.innerHTML = "❌ Fehlentscheidung";
+            title.style.color = "var(--danger)";
+            text.innerHTML = "Oh nein! Du hast gesagt, es sei schön. Jetzt kauft dein Freund ein Hemd, das ihm eigentlich gar nicht steht.";
+        }
+    }
+
+    // Initialer Start
+    startScenario();
+</script>
+
+</body>
+</html>
