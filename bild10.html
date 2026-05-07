@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Lernspiel: Emoji-Match (Verschwinden)</title>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --success: #00b894;
+            --danger: #d63031;
+            --bg: #f9f9fb;
+            --text: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .game-card {
+            background: white;
+            max-width: 700px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        h2 { color: var(--primary); margin-bottom: 10px; }
+        .instruction { color: #636e72; margin-bottom: 30px; }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+            /* Verhindert, dass die Spaltenbreite beim Ausblenden springt */
+            min-height: 350px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .match-item {
+            background: #f1f2f6;
+            padding: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease, border-color 0.2s, background-color 0.2s, opacity 0.8s ease-out;
+            border: 2px solid transparent;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+            opacity: 1; /* Startzustand */
+            position: relative;
+        }
+
+        .match-item:hover:not(.locked, .correct) {
+            background: #dfe4ea;
+            transform: translateY(-2px);
+        }
+
+        .match-item.selected {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+
+        .match-item.correct {
+            background-color: #e6fffb;
+            border-color: var(--success);
+            color: #006b5a;
+            cursor: default;
+        }
+
+        .match-item.wrong {
+            animation: shake 0.4s;
+            background-color: #fff5f5;
+            border-color: var(--danger);
+        }
+
+        /* Animation zum langsamen Verschwinden */
+        .match-item.fade-out {
+            opacity: 0;
+            pointer-events: none; /* Nicht mehr anklickbar */
+        }
+
+        .emoji-item { font-size: 2.5rem; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @media (max-width: 600px) {
+            .game-area {
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+            .match-item { padding: 15px; font-size: 1.1rem; }
+            .emoji-item { font-size: 2rem; }
+        }
+
+        #feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-height: 1.5em;
+        }
+
+        .reset-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-card">
+    <h2>Emoji-Match</h2>
+    <p class="instruction">Klicke zuerst ein russisches Wort (links) und dann das passende Gesicht (rechts) an! Korrekte Paare verschwinden.</p>
+
+    <div class="game-area">
+        <div id="words" class="column"></div>
+        <div id="emojis" class="column"></div>
+    </div>
+
+    <div id="feedback"></div>
+    <button class="reset-btn" onclick="initGame()">Neustart</button>
+</div>
+
+<script>
+    const matches = [
+        { word: "очень хорошо!", emoji: "👍", info: "'очень хорошо' ist ein Lob." },
+        { word: "так себе", emoji: "😕", info: "'так себе' ist mittelmäßig." },
+        { word: "ну такое...", emoji: "😒", info: "'такое' ist skeptische Ablehnung." },
+        { word: "не очень", emoji: "👎", info: "'не очень' ist eine negative Bewertung." },
+        { word: "великолепно!", emoji: "🤩", info: "'великолепно' ist Begeisterung." }
+    ];
+
+    let selectedWordElement = null;
+    let correctMatches = 0;
+
+    function initGame() {
+        selectedWordElement = null;
+        correctMatches = 0;
+        document.getElementById('feedback').textContent = "";
+        
+        const shuffledWords = [...matches].sort(() => Math.random() - 0.5);
+        const shuffledEmojis = [...matches].sort(() => Math.random() - 0.5);
+
+        renderList('words', shuffledWords, 'word');
+        renderList('emojis', shuffledEmojis, 'emoji', 'emoji-item');
+    }
+
+    function renderList(containerId, data, property, extraClass='') {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        data.forEach(item => {
+            const div = document.createElement('div');
+            div.className = `match-item ${extraClass}`;
+            div.textContent = item[property];
+            div.dataset.value = item[property];
+            
+            if (property === 'word') {
+                div.onclick = () => selectWord(div);
+            } else {
+                div.onclick = () => checkMatch(div);
+            }
+            container.appendChild(div);
+        });
+    }
+
+    function selectWord(element) {
+        if (element.classList.contains('correct') || element.classList.contains('fade-out')) return;
+        
+        document.querySelectorAll('#words .match-item').forEach(el => el.classList.remove('selected'));
+        
+        selectedWordElement = element;
+        element.classList.add('selected');
+        document.getElementById('feedback').textContent = "Jetzt wähle das passende Emoji!";
+    }
+
+    function checkMatch(emojiElement) {
+        if (!selectedWordElement || emojiElement.classList.contains('correct') || emojiElement.classList.contains('fade-out')) return;
+
+        const wordVal = selectedWordElement.dataset.value;
+        const emojiVal = emojiElement.dataset.value;
+        const feedbackContainer = document.getElementById('feedback');
+
+        const matchData = matches.find(m => m.word === wordVal);
+
+        if (matchData.emoji === emojiVal) {
+            // Richtig
+            const activeWord = selectedWordElement; // Referenz sichern
+            
+            activeWord.classList.add('correct');
+            activeWord.classList.remove('selected');
+            emojiElement.classList.add('correct');
+            
+            feedbackContainer.innerHTML = `✅ Richtig! ${matchData.info}`;
+            feedbackContainer.style.color = "var(--success)";
+            
+            selectedWordElement = null;
+            correctMatches++;
+
+            // --- NEU: Langsames Verschwinden ---
+            setTimeout(() => {
+                activeWord.classList.add('fade-out');
+                emojiElement.classList.add('fade-out');
+            }, 600); // Eine kurze Verzögerung, bevor das Ausblenden beginnt
+
+            // Den Platz nach der Animation freigeben
+            setTimeout(() => {
+                activeWord.style.display = 'none';
+                emojiElement.style.display = 'none';
+                
+                // Prüfen, ob das Spiel zu Ende ist, erst nachdem der Platz freigegeben ist
+                if (correctMatches === matches.length) {
+                    feedbackContainer.innerHTML = "🎉 Großartig! Du hast alle Nuancen richtig zugeordnet und verschwinden lassen.";
+                }
+            }, 1400); // 600ms Verzögerung + 800ms CSS-Animation
+
+        } else {
+            // Falsch
+            emojiElement.classList.add('wrong');
+            feedbackContainer.innerHTML = "❌ Das passt nicht. Versuche es noch einmal!";
+            feedbackContainer.style.color = "var(--danger)";
+            
+            setTimeout(() => {
+                emojiElement.classList.remove('wrong');
+            }, 400);
+        }
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
