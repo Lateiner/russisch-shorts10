@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Lernspiel: Interaktiver Dialog</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --bg: #f4f7f6;
+            --card: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card);
+            max-width: 800px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        h2 { text-align: center; color: var(--primary); }
+        .instruction { text-align: center; color: #666; margin-bottom: 30px; }
+
+        .dialog-box {
+            font-size: 1.15rem;
+            line-height: 2.2;
+            background: #fafafa;
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid #eee;
+        }
+
+        .line { margin-bottom: 15px; }
+        .speaker { font-weight: bold; color: #333; margin-right: 5px; }
+
+        /* Dropdown Styling */
+        .select-wrapper {
+            display: inline-block;
+            position: relative;
+            margin: 0 5px;
+        }
+
+        select {
+            appearance: none;
+            background-color: #fff;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            padding: 5px 25px 5px 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        select:focus { outline: none; border-color: var(--primary); }
+
+        /* Status-Farben */
+        select.is-correct {
+            border-color: var(--success);
+            background-color: #e8f8f0;
+            color: #1b5e20;
+        }
+
+        select.is-wrong {
+            border-color: var(--danger);
+            background-color: #fdecea;
+            color: #b71c1c;
+        }
+
+        .feedback-msg {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-top: -5px;
+            margin-bottom: 10px;
+            min-height: 1.2rem;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .btn-reset {
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .dialog-box { font-size: 1rem; padding: 15px; }
+            select { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Einkaufs-Dialog</h2>
+    <p class="instruction">Wähle die passenden Wörter aus. Du erhältst sofort Feedback!</p>
+
+    <div class="dialog-box">
+        <div class="line">
+            <span class="speaker">Анна:</span> Смотри, эта синяя рубашка очень 
+            <div class="select-wrapper">
+                <select onchange="check(this, 'хорошая')">
+                    <option value="">...</option>
+                    <option value="плохая">плохая</option>
+                    <option value="хорошая">хорошая</option>
+                </select>
+            </div>. Тебе нравится?
+        </div>
+        <div id="fb-0" class="feedback-msg"></div>
+
+        <div class="line">
+            <span class="speaker">Лукас:</span> Да, она 
+            <div class="select-wrapper">
+                <select onchange="check(this, 'супер')">
+                    <option value="">...</option>
+                    <option value="супер">супер</option>
+                    <option value="так себе">так себе</option>
+                </select>
+            </div>! Покупай её.
+        </div>
+        <div id="fb-1" class="feedback-msg"></div>
+
+        <hr>
+
+        <div class="line">
+            <span class="speaker">Анна:</span> А как тебе эта зелёная рубашка? Она 
+            <div class="select-wrapper">
+                <select onchange="check(this, 'красивая')">
+                    <option value="">...</option>
+                    <option value="красивая">красивая</option>
+                    <option value="ужасная">ужасная</option>
+                </select>
+            </div>?
+        </div>
+        <div id="fb-2" class="feedback-msg"></div>
+
+        <div class="line">
+            <span class="speaker">Лукас:</span> Хмм... Ну, она 
+            <div class="select-wrapper">
+                <select onchange="check(this, 'так себе')">
+                    <option value="">...</option>
+                    <option value="прекрасно">прекрасно</option>
+                    <option value="так себе">так себе</option>
+                </select>
+            </div>. Цвет не очень.
+        </div>
+        <div id="fb-3" class="feedback-msg"></div>
+
+        <hr>
+
+        <div class="line">
+            <span class="speaker">Анна:</span> Значит, эта рубашка... 
+            <div class="select-wrapper">
+                <select onchange="check(this, 'ну такое')">
+                    <option value="">...</option>
+                    <option value="ну такое">ну такое</option>
+                    <option value="очень круто">очень круто</option>
+                </select>
+            </div>?
+        </div>
+        <div id="fb-4" class="feedback-msg"></div>
+
+        <div class="line">
+            <span class="speaker">Лукас:</span> Именно. 
+            <div class="select-wrapper">
+                <select onchange="check(this, 'Не покупай')">
+                    <option value="">...</option>
+                    <option value="Не покупай">Не покупай</option>
+                    <option value="Возьми две">Возьми две</option>
+                </select>
+            </div> её. Возьми лучше синюю!
+        </div>
+        <div id="fb-5" class="feedback-msg"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-reset" onclick="location.reload()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    function check(el, correctValue) {
+        const feedbackDiv = el.parentElement.parentElement.nextElementSibling;
+        
+        if (el.value === "") {
+            el.classList.remove('is-correct', 'is-wrong');
+            feedbackDiv.textContent = "";
+            return;
+        }
+
+        if (el.value === correctValue) {
+            el.className = 'is-correct';
+            feedbackDiv.textContent = "✅ Richtig!";
+            feedbackDiv.style.color = "var(--success)";
+        } else {
+            el.className = 'is-wrong';
+            feedbackDiv.textContent = "❌ Das passt hier nicht zum Kontext.";
+            feedbackDiv.style.color = "var(--danger)";
+        }
+    }
+</script>
+
+</body>
+</html>
