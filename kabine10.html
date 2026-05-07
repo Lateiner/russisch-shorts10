@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Hotspot Umkleide</title>
+    <style>
+        :root {
+            --primary: #007bff;
+            --success: #28a745;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: #e9ecef;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Responsives Bild-Container-System */
+        .image-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            max-width: 800px;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .main-img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Hotspots definieren (Prozentwerte halten sie responsiv) */
+        .hotspot {
+            position: absolute;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        .hotspot:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+        }
+
+        /* Positionen basierend auf deinem Bild */
+        #spot-hat   { top: 10%; left: 45%; width: 12%; height: 15%; }
+        #spot-shirt { top: 25%; left: 48%; width: 18%; height: 30%; }
+        #spot-pants { top: 55%; left: 47%; width: 18%; height: 25%; }
+        #spot-shoes { top: 75%; left: 56%; width: 15%; height: 15%; }
+
+        /* Sprechblase & UI */
+        .speech-bubble {
+            margin: 20px auto;
+            padding: 15px;
+            background: var(--light);
+            border: 2px solid var(--primary);
+            border-radius: 15px;
+            font-size: 1.3rem;
+            min-height: 40px;
+            max-width: 500px;
+            display: none;
+            animation: fadeIn 0.4s;
+        }
+
+        .controls {
+            display: none;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn-buy { background-color: var(--success); }
+        .btn-deny { background-color: var(--danger); }
+        .btn-reset { background-color: #6c757d; margin-top: 20px; }
+
+        #feedback {
+            margin-top: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @media (max-width: 600px) {
+            .controls { flex-direction: column; }
+            .hotspot { border-width: 1px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Interaktive Kabine</h2>
+    <p>Klicke auf die Mütze, das Hemd, die Hose oder die Schuhe!</p>
+
+    <div class="image-wrapper">
+        <img src="Kabine.jpg" alt="Umkleidekabine" class="main-img">
+        
+        <div id="spot-hat" class="hotspot" onclick="showTask('hat')"></div>
+        <div id="spot-shirt" class="hotspot" onclick="showTask('shirt')"></div>
+        <div id="spot-pants" class="hotspot" onclick="showTask('pants')"></div>
+        <div id="spot-shoes" class="hotspot" onclick="showTask('shoes')"></div>
+    </div>
+
+    <div id="bubble" class="speech-bubble"></div>
+
+    <div id="controls" class="controls">
+        <button class="btn-buy" onclick="checkAnswer(true)">Kaufargument</button>
+        <button class="btn-deny" onclick="checkAnswer(false)">Ablehnung</button>
+    </div>
+
+    <div id="feedback"></div>
+    <button class="btn-reset" onclick="resetAll()">Neustart</button>
+</div>
+
+<script>
+    const content = {
+        hat: {
+            rus: "Эта шапка... ну такое.",
+            isPos: false,
+            msg: "Richtig! 'Ну такое' signalisiert, dass es nicht überzeugt."
+        },
+        shirt: {
+            rus: "О, это очень хорошая рубашка!",
+            isPos: true,
+            msg: "Richtig! Das ist ein klares Lob."
+        },
+        pants: {
+            rus: "Джинсы так себе.",
+            isPos: false,
+            msg: "Richtig! 'Так себе' bedeutet mittelmäßig oder schlecht."
+        },
+        shoes: {
+            rus: "Они классные, покупай!",
+            isPos: true,
+            msg: "Richtig! Er fordert dich direkt zum Kauf auf."
+        }
+    };
+
+    let activeKey = null;
+
+    function showTask(key) {
+        activeKey = key;
+        const bubble = document.getElementById('bubble');
+        const controls = document.getElementById('controls');
+        const feedback = document.getElementById('feedback');
+
+        bubble.textContent = content[key].rus;
+        bubble.style.display = 'block';
+        controls.style.display = 'flex';
+        feedback.textContent = "";
+    }
+
+    function checkAnswer(userChoice) {
+        if (!activeKey) return;
+        const feedback = document.getElementById('feedback');
+        const isCorrect = userChoice === content[activeKey].isPos;
+
+        if (isCorrect) {
+            feedback.textContent = "✅ " + content[activeKey].msg;
+            feedback.style.color = "var(--success)";
+        } else {
+            feedback.textContent = "❌ Überlege nochmal, was der Ausdruck bedeutet!";
+            feedback.style.color = "var(--danger)";
+        }
+    }
+
+    function resetAll() {
+        activeKey = null;
+        document.getElementById('bubble').style.display = 'none';
+        document.getElementById('controls').style.display = 'none';
+        document.getElementById('feedback').textContent = "";
+    }
+</script>
+
+</body>
+</html>
