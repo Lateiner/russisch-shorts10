@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Der passende Kontext</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --secondary: #f39c12;
+            --success: #27ae60;
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h2 { text-align: center; color: var(--primary); margin-bottom: 5px; }
+        .progress { text-align: center; font-size: 0.9rem; color: #7f8c8d; margin-bottom: 20px; }
+
+        .situation-box {
+            background: #eef2f7;
+            padding: 20px;
+            border-left: 5px solid var(--primary);
+            border-radius: 5px;
+            margin-bottom: 25px;
+            font-style: italic;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-btn {
+            padding: 15px 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            font-size: 1.1rem;
+            text-align: left;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: #f0f7ff;
+        }
+
+        .option-btn.correct {
+            background-color: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .option-btn.wrong {
+            background-color: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .feedback {
+            margin-top: 20px;
+            min-height: 24px;
+            text-align: center;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-next, .btn-reset {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-next { background: var(--primary); color: white; }
+        .btn-reset { background: #95a5a6; color: white; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (max-width: 480px) {
+            .quiz-container { padding: 20px; }
+            .option-btn { font-size: 1rem; padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <h2>Was passt am besten?</h2>
+    <div id="progress" class="progress">Frage 1 von 6</div>
+    
+    <div id="situation" class="situation-box">
+        Lade Situation...
+    </div>
+
+    <div id="options" class="options-container"></div>
+
+    <div id="feedback" class="feedback"></div>
+
+    <div class="controls">
+        <button id="reset-btn" class="btn-reset" onclick="initQuiz()">Neustart</button>
+        <button id="next-btn" class="btn-next" onclick="nextQuestion()" disabled>Nächste Frage</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            situation: "Du kommst gerade aus dem Kino. Dein Freund fragt, wie der Film war. Er war okay, aber nicht besonders spannend oder beeindruckend.",
+            options: ["Это очень красиво!", "Так себе.", "Я в восторге!"],
+            correct: 1,
+            explanation: "Genau! 'Так себе' passt perfekt für Dinge, die nur durchschnittlich waren."
+        },
+        {
+            situation: "Du probierst in einem Laden ein T-Shirt an. Es passt zwar, aber die Farbe ist langweilig und es steht dir nicht wirklich.",
+            options: ["Ну такое.", "Это супер!", "Мне очень нравится."],
+            correct: 0,
+            explanation: "Richtig. 'Ну такое' drückt eine skeptische, eher negative Bewertung aus."
+        },
+        {
+            situation: "Jemand fragt dich, wie das Essen in der neuen Kantine schmeckt. Es ist essbar, aber du würdest es niemandem empfehlen.",
+            options: ["Это очень вкусно!", "Не покупай это.", "Так себе."],
+            correct: 2,
+            explanation: "Richtig! 'Так себе' beschreibt hier die mittelmäßige Qualität des Essens."
+        },
+        {
+            situation: "Ein Freund zeigt dir sein neues Handy-Spiel. Die Grafik ist veraltet und das Gameplay macht keinen Spaß.",
+            options: ["Хорошая игра!", "Ну такое.", "Думаю, нужно покупать."],
+            correct: 1,
+            explanation: "Stimmt! 'Ну такое' zeigt, dass du von dem Spiel absolut nicht beeindruckt bist."
+        },
+        {
+            situation: "Du hast ein Wochenende in einer kleinen Stadt verbracht. Das Wetter war grau und es gab nichts zu tun. Wie war es?",
+            options: ["Так себе.", "Это было великолепно!", "Мне очень понравилось."],
+            correct: 0,
+            explanation: "Absolut! Wenn ein Erlebnis enttäuschend oder langweilig war, sagt man 'Так себе'."
+        },
+        {
+            situation: "Deine Freundin trägt ein Kleid, das viel zu groß ist und ihr gar nicht schmeichelt. Sie fragt nach deiner ehrlichen Meinung.",
+            options: ["Это очень красиво.", "Тебе очень идет!", "Это так себе, не очень."],
+            correct: 2,
+            explanation: "Richtig. Damit sagst du höflich, dass es nicht besonders schön an ihr aussieht."
+        }
+    ];
+
+    let currentIdx = 0;
+
+    function initQuiz() {
+        currentIdx = 0;
+        document.getElementById('next-btn').textContent = "Nächste Frage";
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const q = questions[currentIdx];
+        document.getElementById('progress').textContent = `Frage ${currentIdx + 1} von ${questions.length}`;
+        document.getElementById('situation').textContent = q.situation;
+        document.getElementById('feedback').textContent = "";
+        document.getElementById('next-btn').disabled = true;
+
+        const optionsContainer = document.getElementById('options');
+        optionsContainer.innerHTML = "";
+
+        q.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = () => checkAnswer(index);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selectedIdx) {
+        const q = questions[currentIdx];
+        const buttons = document.querySelectorAll('.option-btn');
+        const feedback = document.getElementById('feedback');
+
+        buttons.forEach(btn => btn.disabled = true);
+
+        if (selectedIdx === q.correct) {
+            buttons[selectedIdx].classList.add('correct');
+            feedback.textContent = "✅ " + q.explanation;
+            feedback.style.color = "var(--success)";
+        } else {
+            buttons[selectedIdx].classList.add('wrong');
+            buttons[q.correct].classList.add('correct');
+            feedback.textContent = "❌ Nicht ganz. Die passende Reaktion wäre: " + q.options[q.correct];
+            feedback.style.color = "#e74c3c";
+        }
+
+        document.getElementById('next-btn').disabled = false;
+        
+        if (currentIdx === questions.length - 1) {
+            document.getElementById('next-btn').textContent = "Abschluss";
+        }
+    }
+
+    function nextQuestion() {
+        if (currentIdx < questions.length - 1) {
+            currentIdx++;
+            showQuestion();
+        } else {
+            alert("Hervorragend! Du hast alle 6 Situationen gemeistert.");
+            initQuiz();
+        }
+    }
+
+    initQuiz();
+</script>
+
+</body>
+</html>
