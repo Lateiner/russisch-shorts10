@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Audio-Check: Direktes Feedback</title>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --success: #00b894;
+            --danger: #d63031;
+            --bg: #f9f9fb;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .audio-card {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .instruction {
+            color: #636e72;
+            margin-bottom: 25px;
+            line-height: 1.4;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .audio-option {
+            display: flex;
+            align-items: center;
+            background: #f1f2f6;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .audio-option:hover {
+            background: #dfe4ea;
+        }
+
+        .play-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .audio-option.correct {
+            border-color: var(--success);
+            background: #e6fffb;
+        }
+
+        .audio-option.wrong {
+            border-color: var(--danger);
+            background: #fff5f5;
+        }
+
+        .feedback-text {
+            margin-left: auto;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            margin-top: 25px;
+        }
+
+        .reset-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            background-color: #6c757d;
+            color: white;
+        }
+
+        @media (max-width: 480px) {
+            .audio-card { padding: 20px; }
+            .audio-option { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="audio-card">
+    <h2>Hör-Check: Direktes Feedback</h2>
+    <p class="instruction">Welche dieser Aussagen drücken eine <b>negative oder skeptische</b> Meinung aus? Klicke auf die Varianten, um sie zu prüfen.</p>
+
+    <div id="options" class="options-grid"></div>
+
+    <div class="controls">
+        <button class="reset-btn" onclick="resetGame()">Alle zurücksetzen</button>
+    </div>
+</div>
+
+<script>
+    const synth = window.speechSynthesis;
+    
+    const variants = [
+        { text: "Это... такое.", isNeg: true, label: "Hörprobe 1", pitch: 0.6, rate: 0.7, feedback: "Korrekt! Skeptisch." },
+        { text: "Это очень красиво!", isNeg: false, label: "Hörprobe 2", pitch: 1.3, rate: 1.1, feedback: "Positiv! Nicht skeptisch." },
+        { text: "Так себе.", isNeg: true, label: "Hörprobe 3", pitch: 0.8, rate: 0.9, feedback: "Korrekt! Mittelmäßig." },
+        { text: "Не очень хорошо.", isNeg: true, label: "Hörprobe 4", pitch: 0.8, rate: 0.9, feedback: "Korrekt! Negativ." },
+        { text: "Не покупай.", isNeg: true, label: "Hörprobe 5", pitch: 0.9, rate: 1.0, feedback: "Korrekt! Ablehnung." },
+        { text: "Мне очень нравится!", isNeg: false, label: "Hörprobe 6", pitch: 1.2, rate: 1.0, feedback: "Positiv! Begeisterung." }
+    ];
+
+    function initOptions() {
+        const container = document.getElementById('options');
+        container.innerHTML = '';
+        variants.forEach((v, idx) => {
+            const div = document.createElement('div');
+            div.className = 'audio-option';
+            div.id = `opt-${idx}`;
+            div.onclick = () => checkOption(idx);
+            
+            div.innerHTML = `
+                <button class="play-btn" onclick="playAudio(${idx}); event.stopPropagation();">▶</button>
+                <span>${v.label}</span>
+                <span class="feedback-text" id="fb-${idx}"></span>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function playAudio(idx) {
+        synth.cancel();
+        const v = variants[idx];
+        const utter = new SpeechSynthesisUtterance(v.text);
+        utter.lang = 'ru-RU';
+        utter.pitch = v.pitch;
+        utter.rate = v.rate;
+        synth.speak(utter);
+    }
+
+    function checkOption(idx) {
+        const el = document.getElementById(`opt-${idx}`);
+        const fb = document.getElementById(`fb-${idx}`);
+        const v = variants[idx];
+
+        if (v.isNeg) {
+            el.classList.add('correct');
+            el.classList.remove('wrong');
+            fb.textContent = "✅ " + v.feedback;
+            fb.style.color = "var(--success)";
+        } else {
+            el.classList.add('wrong');
+            el.classList.remove('correct');
+            fb.textContent = "❌ " + v.feedback;
+            fb.style.color = "var(--danger)";
+        }
+        playAudio(idx); // Automatische Wiedergabe beim Klicken für besseres Feedback
+    }
+
+    function resetGame() {
+        synth.cancel();
+        initOptions();
+    }
+
+    initOptions();
+</script>
+
+</body>
+</html>
