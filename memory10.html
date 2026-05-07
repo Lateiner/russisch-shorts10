@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Memory: Synonyme & Logik</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #2ecc71;
+            --bg: #f8f9fa;
+            --card-back: #34495e;
+            --text-color: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            max-width: 600px;
+        }
+
+        h2 { color: var(--primary); margin-bottom: 10px; }
+        p { color: #666; font-size: 0.95rem; }
+
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .card {
+            aspect-ratio: 1 / 1;
+            background-color: var(--card-back);
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            font-size: 1rem;
+            color: transparent; /* Text versteckt */
+            transition: background-color 0.3s, opacity 1s ease-out, transform 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            user-select: none;
+            border: 3px solid transparent;
+        }
+
+        /* Keine Spiegelschrift: Nur Farbaufhellung statt Rotation */
+        .card.flipped {
+            background-color: white;
+            color: var(--text-color);
+            border-color: var(--primary);
+        }
+
+        .card.matched {
+            background-color: var(--success);
+            color: white;
+            opacity: 0; /* Langsames Verschwinden */
+            pointer-events: none;
+        }
+
+        .card:hover:not(.flipped, .matched) {
+            transform: scale(1.02);
+            background-color: #2c3e50;
+        }
+
+        .controls {
+            margin-top: 30px;
+        }
+
+        .btn-reset {
+            padding: 12px 25px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .btn-reset:hover { background-color: #357abd; }
+
+        /* Responsive Anpassung für sehr kleine Handys */
+        @media (max-width: 380px) {
+            .card { font-size: 0.85rem; padding: 5px; }
+            .memory-grid { gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>Memory: Was passt zusammen?</h2>
+        <p>Finde die Paare: Entweder gleiche Bedeutung (Synonyme) oder logische Folge (z.B. Gut → Kaufen).</p>
+    </div>
+
+    <div class="memory-grid" id="grid"></div>
+
+    <div class="controls">
+        <button class="btn-reset" onclick="initGame()">Spiel neu starten</button>
+    </div>
+
+    <script>
+        const pairs = [
+            { a: "так себе", b: "не очень хорошо" },
+            { a: "такое", b: "так себе" },
+            { a: "хорошая", b: "покупай" }
+        ];
+
+        let flippedCards = [];
+        let lockBoard = false;
+
+        function initGame() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            flippedCards = [];
+            lockBoard = false;
+            
+            let cardValues = [];
+            pairs.forEach((pair, index) => {
+                cardValues.push({ text: pair.a, pairId: index });
+                cardValues.push({ text: pair.b, pairId: index });
+            });
+
+            // Mischen
+            cardValues.sort(() => Math.random() - 0.5);
+
+            cardValues.forEach(val => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.pairId = val.pairId;
+                card.textContent = val.text;
+                card.onclick = () => flipCard(card);
+                grid.appendChild(card);
+            });
+        }
+
+        function flipCard(card) {
+            if (lockBoard || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+            card.classList.add('flipped');
+            flippedCards.push(card);
+
+            if (flippedCards.length === 2) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+            const isMatch = card1.dataset.pairId === card2.dataset.pairId;
+
+            if (isMatch) {
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                resetBoard();
+            } else {
+                lockBoard = true;
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    resetBoard();
+                }, 1000);
+            }
+        }
+
+        function resetBoard() {
+            flippedCards = [];
+            lockBoard = false;
+        }
+
+        // Initialer Start
+        initGame();
+    </script>
+</body>
+</html>
