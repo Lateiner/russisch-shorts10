@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Lernspiel: Bewertungsskala</title>
+    <style>
+        :root {
+            --pos-color: #d4edda;
+            --neu-color: #fff3cd;
+            --neg-color: #f8d7da;
+            --accent: #007bff;
+            --accent-hover: #0056b3;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 { color: #333; text-align: center; margin-bottom: 5px; }
+        p { text-align: center; color: #666; margin-bottom: 20px; }
+
+        /* Container für die ziehbaren Elemente */
+        #word-bank {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            min-height: 60px;
+        }
+
+        .draggable {
+            background-color: var(--accent);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 20px;
+            cursor: grab;
+            user-select: none;
+            font-size: 1.1rem;
+            touch-action: manipulation;
+        }
+
+        .draggable:active { cursor: grabbing; }
+
+        /* Die Spalten */
+        .drop-zone-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .drop-zone {
+            min-height: 180px;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 2px dashed #ccc;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .drop-zone h3 { margin-top: 0; font-size: 1.1rem; color: #444; }
+
+        #pos { background-color: var(--pos-color); border-color: #c3e6cb; }
+        #neu { background-color: var(--neu-color); border-color: #ffeeba; }
+        #neg { background-color: var(--neg-color); border-color: #f5c6cb; }
+
+        .drop-zone.over {
+            border-color: #333;
+            filter: brightness(0.95);
+        }
+
+        /* Buttons & Meldungen */
+        .controls {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        #reset-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #reset-btn:hover { background-color: #5a6268; }
+
+        .success-msg {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #28a745;
+            font-size: 1.2rem;
+            display: none;
+        }
+
+        /* Responsive Anpassung */
+        @media (max-width: 700px) {
+            .drop-zone-container {
+                grid-template-columns: 1fr;
+            }
+            .drop-zone {
+                min-height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Russische Bewertungen einsortieren</h2>
+    <p>Ziehe die Sätze in die richtige Kategorie (Positiv, Neutral oder Negativ).</p>
+
+    <div id="word-bank">
+        <!-- Elemente werden beim Start/Reset per JS gemischt eingefügt -->
+    </div>
+
+    <div class="drop-zone-container">
+        <div class="drop-zone" id="pos" data-accept="pos">
+            <h3>Positiv</h3>
+        </div>
+        <div class="drop-zone" id="neu" data-accept="neu">
+            <h3>Neutral / Mittelmäßig</h3>
+        </div>
+        <div class="drop-zone" id="neg" data-accept="neg">
+            <h3>Negativ</h3>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div id="message" class="success-msg">Отлично! (Hervorragend!) Alles richtig zugeordnet.</div>
+        <br>
+        <button id="reset-btn">Spiel neustarten</button>
+    </div>
+
+    <script>
+        const words = [
+            { id: 'w1', text: 'Мне нравится', cat: 'pos' },
+            { id: 'w2', text: 'Это так себе', cat: 'neu' },
+            { id: 'w3', text: 'Ну такое', cat: 'neu' },
+            { id: 'w4', text: 'Это очень красиво', cat: 'pos' },
+            { id: 'w5', text: 'Не покупай', cat: 'neg' },
+            { id: 'w6', text: 'Хорошая рубашка', cat: 'pos' },
+            { id: 'w7', text: 'Не очень хорошо', cat: 'neu' }
+        ];
+
+        const wordBank = document.getElementById('word-bank');
+        const zones = document.querySelectorAll('.drop-zone');
+        const message = document.getElementById('message');
+        const resetBtn = document.getElementById('reset-btn');
+
+        function initGame() {
+            // Container leeren
+            wordBank.innerHTML = '';
+            zones.forEach(zone => {
+                const title = zone.querySelector('h3');
+                zone.innerHTML = '';
+                zone.appendChild(title);
+            });
+            message.style.display = 'none';
+
+            // Wörter mischen
+            const shuffled = [...words].sort(() => Math.random() - 0.5);
+
+            // Wörter erstellen
+            shuffled.forEach(word => {
+                const el = document.createElement('div');
+                el.className = 'draggable';
+                el.draggable = true;
+                el.id = word.id;
+                el.dataset.cat = word.cat;
+                el.textContent = word.text;
+
+                el.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', e.target.id);
+                    setTimeout(() => e.target.style.opacity = '0.5', 0);
+                });
+
+                el.addEventListener('dragend', (e) => {
+                    e.target.style.opacity = '1';
+                    checkWin();
+                });
+
+                wordBank.appendChild(el);
+            });
+        }
+
+        zones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('over');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('over');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('over');
+                const id = e.dataTransfer.getData('text/plain');
+                const draggedElement = document.getElementById(id);
+                
+                if (draggedElement && draggedElement.dataset.cat === zone.dataset.accept) {
+                    zone.appendChild(draggedElement);
+                    draggedElement.setAttribute('draggable', 'false');
+                    draggedElement.style.cursor = 'default';
+                } else {
+                    // Visuelles Feedback bei Fehlern (kurzes Schütteln oder Hinweis)
+                    alert("Überlege nochmal! Passt dieser Ausdruck wirklich in diese Kategorie?");
+                }
+            });
+        });
+
+        function checkWin() {
+            if (wordBank.children.length === 0) {
+                message.style.display = 'block';
+            }
+        }
+
+        resetBtn.addEventListener('click', initGame);
+
+        // Initialisierung beim Laden
+        initGame();
+    </script>
+</body>
+</html>
