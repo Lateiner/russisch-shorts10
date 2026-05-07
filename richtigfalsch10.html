@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Lernspiel: Swipe-Check</title>
+    <style>
+        :root {
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --bg: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 400px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .card-stack {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            perspective: 1000px;
+        }
+
+        .card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            box-sizing: border-box;
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: 500;
+            cursor: grab;
+            user-select: none;
+            transition: transform 0.1s ease-out, opacity 0.3s;
+            touch-action: none; /* Verhindert Scrolling beim Wischen */
+        }
+
+        .card.active {
+            z-index: 2;
+        }
+
+        .instructions {
+            margin-top: 30px;
+            display: flex;
+            gap: 40px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .hint {
+            position: absolute;
+            top: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 2rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .hint-right { right: 20px; color: var(--success); transform: rotate(15deg); }
+        .hint-left { left: 20px; color: var(--danger); transform: rotate(-15deg); }
+
+        .btn-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .circle-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .btn-false { background-color: var(--danger); }
+        .btn-true { background-color: var(--success); }
+        .circle-btn:active { transform: scale(0.9); }
+
+        #feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            min-height: 1.5em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="header">
+        <h2>Richtig oder Falsch?</h2>
+        <p>Wische nach rechts (Richtig) oder links (Falsch)!</p>
+    </div>
+
+    <div class="card-stack" id="stack">
+        </div>
+
+    <div class="btn-controls">
+        <button class="circle-btn btn-false" onclick="simulateSwipe('left')">✕</button>
+        <button class="circle-btn btn-true" onclick="simulateSwipe('right')">✓</button>
+    </div>
+
+    <div id="feedback"></div>
+</div>
+
+<script>
+    const questions = [
+        { text: "„Такое“ bedeutet, dass etwas sehr schön ist.", correct: "left" },
+        { text: "„Мне нравится“ bedeutet „Mir gefällt es“.", correct: "right" },
+        { text: "„Так себе“ benutzt man für mittelmäßige Dinge.", correct: "right" },
+        { text: "„Ну такое“ ist ein starkes Kaufargument.", correct: "left" },
+        { text: "„Это очень хорошая рубашка“ ist ein Lob.", correct: "right" }
+    ];
+
+    let currentIdx = 0;
+    const stack = document.getElementById('stack');
+    const feedback = document.getElementById('feedback');
+
+    function createCard(index) {
+        if (index >= questions.length) {
+            feedback.innerHTML = "🎉 Fertig! Du hast alle Nuancen gecheckt.";
+            return;
+        }
+        
+        const card = document.createElement('div');
+        card.className = 'card active';
+        card.innerHTML = `
+            <div class="hint hint-left">Falsch</div>
+            <div class="hint hint-right">Richtig</div>
+            <div>${questions[index].text}</div>
+        `;
+        
+        stack.appendChild(card);
+        initDrag(card);
+    }
+
+    function initDrag(card) {
+        let startX = 0;
+        let currentX = 0;
+
+        card.addEventListener('touchstart', (e) => startX = e.touches[0].clientX);
+        card.addEventListener('mousedown', (e) => startX = e.clientX);
+
+        const move = (e) => {
+            if (startX === 0) return;
+            const x = (e.touches ? e.touches[0].clientX : e.clientX);
+            currentX = x - startX;
+            
+            const rotate = currentX / 10;
+            card.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
+            
+            // Hints einblenden
+            const leftHint = card.querySelector('.hint-left');
+            const rightHint = card.querySelector('.hint-right');
+            
+            if (currentX > 50) {
+                rightHint.style.opacity = Math.min(currentX / 100, 1);
+                leftHint.style.opacity = 0;
+            } else if (currentX < -50) {
+                leftHint.style.opacity = Math.min(Math.abs(currentX) / 100, 1);
+                rightHint.style.opacity = 0;
+            } else {
+                leftHint.style.opacity = 0;
+                rightHint.style.opacity = 0;
+            }
+        };
+
+        const end = () => {
+            if (Math.abs(currentX) > 120) {
+                const direction = currentX > 0 ? 'right' : 'left';
+                processResult(direction, card);
+            } else {
+                card.style.transform = '';
+                card.querySelectorAll('.hint').forEach(h => h.style.opacity = 0);
+            }
+            startX = 0;
+            currentX = 0;
+        };
+
+        window.addEventListener('touchmove', move);
+        window.addEventListener('mousemove', move);
+        window.addEventListener('touchend', end);
+        window.addEventListener('mouseup', end);
+    }
+
+    function processResult(direction, card) {
+        const question = questions[currentIdx];
+        card.style.transition = '0.5s';
+        card.style.transform = `translateX(${direction === 'right' ? 1000 : -1000}px) rotate(${direction === 'right' ? 45 : -45}deg)`;
+        card.style.opacity = '0';
+
+        if (direction === question.correct) {
+            feedback.innerHTML = "✅ Richtig!";
+            feedback.style.color = "var(--success)";
+        } else {
+            feedback.innerHTML = "❌ Leider falsch.";
+            feedback.style.color = "var(--danger)";
+        }
+
+        setTimeout(() => {
+            card.remove();
+            currentIdx++;
+            createCard(currentIdx);
+        }, 300);
+    }
+
+    function simulateSwipe(direction) {
+        const card = document.querySelector('.card.active');
+        if (card) processResult(direction, card);
+    }
+
+    // Start
+    createCard(currentIdx);
+</script>
+
+</body>
+</html>
