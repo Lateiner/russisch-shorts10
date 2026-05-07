@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Lernspiel: Dialog-Puzzle mit Lösung</title>
+    <style>
+        :root {
+            --person1: #e3f2fd;
+            --person1-border: #2196f3;
+            --person2: #f1f8e9;
+            --person2-border: #8bc34a;
+            --bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .instructions {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        #drop-area {
+            background: #eee;
+            border: 2px dashed #bbb;
+            border-radius: 15px;
+            min-height: 420px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .bubble {
+            padding: 12px 18px;
+            border-radius: 15px;
+            border: 2px solid;
+            cursor: grab;
+            user-select: none;
+            background: white;
+            font-size: 1.1rem;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .bubble:active { cursor: grabbing; }
+
+        .p1 { border-color: var(--person1-border); background-color: var(--person1); align-self: flex-start; text-align: left; }
+        .p2 { border-color: var(--person2-border); background-color: var(--person2); align-self: flex-end; text-align: right; }
+
+        .bubble.dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            min-width: 120px;
+        }
+
+        #check-btn { background-color: #007bff; }
+        #solution-btn { background-color: #28a745; }
+        #reset-btn { background-color: #6c757d; }
+
+        #feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-height: 1.5em;
+        }
+
+        .correct-highlight {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+
+        @media (max-width: 480px) {
+            .bubble { font-size: 0.95rem; padding: 10px; }
+            .controls button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Dialog-Puzzle</h2>
+    <div class="instructions">
+        Bring den Dialog in die richtige Reihenfolge: <br>
+        <b>Person A (blau)</b> fragt, <b>Person B (grün)</b> antwortet.
+    </div>
+
+    <div id="drop-area"></div>
+
+    <div class="controls">
+        <button id="check-btn" onclick="checkOrder()">Prüfen</button>
+        <button id="solution-btn" onclick="showSolution()">Lösung</button>
+        <button id="reset-btn" onclick="initGame()">Neustart</button>
+    </div>
+
+    <div id="feedback"></div>
+</div>
+
+<script>
+    const correctDialogue = [
+        { id: "1", text: "Смотри, я примеряю первую рубашку. Как она?", class: "p1" },
+        { id: "2", text: "Вот это мне нравится! Она хорошая.", class: "p2" },
+        { id: "3", text: "А вот вторая рубашка. Она мне тоже очень идёт?", class: "p1" },
+        { id: "4", text: "Мм, это так себе. Она не очень красивая.", class: "p2" },
+        { id: "5", text: "Думаешь, не стоит её покупать?", class: "p1" },
+        { id: "6", text: "Ну, такое... Не покупай её.", class: "p2" }
+    ];
+
+    const dropArea = document.getElementById('drop-area');
+    const feedback = document.getElementById('feedback');
+
+    function initGame() {
+        dropArea.innerHTML = '';
+        feedback.textContent = '';
+        const shuffled = [...correctDialogue].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(item => {
+            const div = document.createElement('div');
+            div.className = `bubble ${item.class}`;
+            div.draggable = true;
+            div.id = `item-${item.id}`;
+            div.textContent = item.text;
+            
+            div.addEventListener('dragstart', () => div.classList.add('dragging'));
+            div.addEventListener('dragend', () => div.classList.remove('dragging'));
+            dropArea.appendChild(div);
+        });
+    }
+
+    dropArea.addEventListener('dragover', e => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(dropArea, e.clientY);
+        const dragging = document.querySelector('.dragging');
+        if (dragging) {
+            if (afterElement == null) {
+                dropArea.appendChild(dragging);
+            } else {
+                dropArea.insertBefore(dragging, afterElement);
+            }
+        }
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.bubble:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function checkOrder() {
+        const currentElements = [...dropArea.querySelectorAll('.bubble')];
+        let isCorrect = true;
+
+        currentElements.forEach((el, idx) => {
+            if (el.id !== `item-${correctDialogue[idx].id}`) {
+                isCorrect = false;
+                el.classList.remove('correct-highlight');
+            } else {
+                el.classList.add('correct-highlight');
+            }
+        });
+
+        if (isCorrect) {
+            feedback.textContent = "✅ Perfekt! Der Dialog ist jetzt richtig.";
+            feedback.style.color = "#28a745";
+        } else {
+            feedback.textContent = "❌ Die Reihenfolge stimmt noch nicht ganz.";
+            feedback.style.color = "#dc3545";
+        }
+    }
+
+    function showSolution() {
+        dropArea.innerHTML = '';
+        correctDialogue.forEach(item => {
+            const div = document.createElement('div');
+            div.className = `bubble ${item.class} correct-highlight`;
+            div.draggable = true;
+            div.id = `item-${item.id}`;
+            div.textContent = item.text;
+            
+            div.addEventListener('dragstart', () => div.classList.add('dragging'));
+            div.addEventListener('dragend', () => div.classList.remove('dragging'));
+            dropArea.appendChild(div);
+        });
+        feedback.textContent = "💡 Hier ist die logische Reihenfolge.";
+        feedback.style.color = "#28a745";
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
